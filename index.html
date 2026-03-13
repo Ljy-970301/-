@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>司乃爾定律 (Snell's Law) 模擬實驗</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background-color: #0b0c10;
+            color: #c5c6c7;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            justify-content: center; /* Center horizontally */
+            align-items: center; /* Center vertically */
+            gap: 25px; /* Spacing between canvas and panel */
+            min-height: 100vh;
+            box-sizing: border-box;
+        }
+
+        #canvas-container {
+            position: relative;
+            border: 2px solid #45a29e;
+            border-radius: 10px;
+            overflow: hidden;
+            background: #000;
+            box-shadow: 0 0 20px rgba(69, 162, 158, 0.2);
+            /* Make it flexible but maintain aspect ratio roughly */
+            height: fit-content;
+        }
+
+        canvas {
+            display: block;
+        }
+
+        #ui-container {
+            background: #1f2833;
+            padding: 20px 25px;
+            border-radius: 12px;
+            border: 1px solid #333;
+            width: 380px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            height: 700px;
+        }
+
+        h1 {
+            margin-top: 0;
+            font-size: 24px; /* Slightly increased */
+            color: #66fcf1;
+            text-align: center;
+            border-bottom: 2px solid #45a29e;
+            padding-bottom: 12px;
+            margin-bottom: 15px;
+            letter-spacing: 1px;
+        }
+
+        .control-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #e0e0e0;
+            font-size: 15px; /* Slightly increased */
+        }
+
+        select, input[type="range"] {
+            width: 100%;
+            padding: 12px;
+            border-radius: 8px;
+            background: #0b0c10;
+            border: 1px solid #45a29e;
+            color: #fff;
+            font-size: 16px;
+            outline: none;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        select:hover {
+            border-color: #66fcf1;
+        }
+
+        input[type="range"] {
+            -webkit-appearance: none;
+            padding: 0;
+            height: 6px;
+            background: #45a29e;
+            border: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #66fcf1;
+            cursor: pointer;
+            box-shadow: 0 0 10px rgba(102, 252, 241, 0.5);
+        }
+
+        .data-panel {
+            background: #0b0c10;
+            padding: 12px 15px;
+            border-radius: 8px;
+            border: 1px solid #45a29e;
+            margin-top: 5px;
+        }
+
+        .data-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px; /* Slightly increased */
+            font-size: 15px; /* Slightly increased */
+        }
+
+        .data-row:last-child {
+            margin-bottom: 0;
+        }
+
+        .data-label {
+            color: #aaa;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .color-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+
+        .data-value {
+            font-weight: bold;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 17px; /* Slightly increased */
+        }
+
+        .incident-color { color: #ff4a4a; }
+        .reflected-color { color: #ffb84d; }
+        .refracted-color { color: #4da6ff; }
+        .bg-incident { background-color: #ff4a4a; box-shadow: 0 0 8px #ff4a4a; }
+        .bg-reflected { background-color: #ffb84d; box-shadow: 0 0 8px #ffb84d; }
+        .bg-refracted { background-color: #4da6ff; box-shadow: 0 0 8px #4da6ff; }
+
+        .tir-warning {
+            color: #ff4a4a;
+            font-weight: bold;
+            text-align: center;
+            margin-top: 20px;
+            padding: 10px;
+            border: 1px solid #ff4a4a;
+            border-radius: 6px;
+            background: rgba(255, 74, 74, 0.1);
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(255, 74, 74, 0.4); }
+            70% { box-shadow: 0 0 0 10px rgba(255, 74, 74, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(255, 74, 74, 0); }
+        }
+
+        .calc-panel {
+            font-family: 'Courier New', Courier, monospace;
+            margin-top: 10px;
+            font-size: 14px; /* Increased from 13 */
+            padding: 12px 15px;
+            background: #0b0c10;
+            border-radius: 8px;
+            border: 1px dashed #45a29e;
+            color: #fff;
+            display: flex;
+            flex-direction: column;
+            gap: 10px; /* Slightly more gap */
+            align-items: flex-start;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="canvas-container">
+        <canvas id="sim-canvas" width="700" height="700"></canvas>
+    </div>
+
+    <div id="ui-container">
+        <h1>司乃爾定律模擬實驗</h1>
+        
+        <div class="control-group">
+            <label>介質 1 (入射介質): <span id="n1-display">n = 1.00</span></label>
+            <select id="medium1">
+                <option value="1.000">空氣 (n = 1.00)</option>
+                <option value="1.333">水 (n = 1.33)</option>
+                <option value="1.520">玻璃 (n = 1.52)</option>
+            </select>
+        </div>
+
+        <div class="control-group">
+            <label>介質 2 (折射介質): <span id="n2-display">n = 1.33</span></label>
+            <select id="medium2">
+                <option value="1.000">空氣 (n = 1.00)</option>
+                <option value="1.333" selected>水 (n = 1.33)</option>
+                <option value="1.520">玻璃 (n = 1.52)</option>
+            </select>
+        </div>
+
+        <div class="control-group">
+            <label>入射角 (θ₁): <span id="angleDisplay">45°</span></label>
+            <div style="display: flex; gap: 15px; align-items: center;">
+                <input type="range" id="angleIncidence" min="0" max="89.9" step="0.1" value="45" style="flex: 1;">
+                <input type="number" id="angleIncidenceInput" min="0" max="89.9" step="0.1" value="45" style="width: 75px; padding: 6px; border-radius: 6px; background: #0b0c10; border: 1px solid #45a29e; color: #fff; text-align: center; outline: none; transition: border-color 0.3s; font-size: 15px; font-family: inherit;">
+            </div>
+        </div>
+
+        <div id="calc-panel-container" class="calc-panel" style="flex-grow: 1;">
+            <div style="font-weight: bold; margin-bottom: 6px; color: #66fcf1; font-size: 15px; align-self: center;">司乃爾定律：n₁ · sin(θ₁) = n₂ · sin(θ₂)</div>
+            <div style="font-size: 13px; color: #aaa; text-align: left; padding-left: 5px; margin-bottom: 10px; width: 100%;">
+                n₁：入射介質折射率 &nbsp; n₂：折射介質折射率<br>
+                θ₁：入射角 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; θ₂：折射角
+            </div>
+            <div id="calc-process" style="width: 100%;">
+                <!-- 動態計算過程將在此更新 -->
+            </div>
+        </div>
+
+        <div class="data-panel">
+            <div class="data-row">
+                <span class="data-label"><div class="color-dot bg-incident"></div> 入射角 (θ₁)</span>
+                <span class="data-value incident-color" id="val-inc">45.0°</span>
+            </div>
+            <div class="data-row">
+                <span class="data-label"><div class="color-dot bg-reflected"></div> 反射角</span>
+                <span class="data-value reflected-color" id="val-refl">45.0°</span>
+            </div>
+            <div class="data-row">
+                <span class="data-label"><div class="color-dot bg-refracted"></div> 折射角 (θ₂)</span>
+                <span class="data-value refracted-color" id="val-refr">32.0°</span>
+            </div>
+        </div>
+
+        <div id="tir-warning" class="tir-warning" style="display: none;">
+            ⚠️ 發生全反射 (Total Internal Reflection)
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('sim-canvas');
+        const ctx = canvas.getContext('2d');
+        const width = canvas.width;
+        const height = canvas.height;
+        const centerX = width / 2;
+        const centerY = height / 2;
+        const mainRadius = Math.min(width, height) * 0.42;
+
+        const med1Select = document.getElementById('medium1');
+        const med2Select = document.getElementById('medium2');
+        const angleSlider = document.getElementById('angleIncidence');
+        const angleNumInput = document.getElementById('angleIncidenceInput');
+        const angleDisplay = document.getElementById('angleDisplay');
+        const n1Display = document.getElementById('n1-display');
+        const n2Display = document.getElementById('n2-display');
+
+        const valInc = document.getElementById('val-inc');
+        const valRefl = document.getElementById('val-refl');
+        const valRefr = document.getElementById('val-refr');
+        const tirWarning = document.getElementById('tir-warning');
+        const calcProcess = document.getElementById('calc-process');
+
+        let n1 = parseFloat(med1Select.value);
+        let n2 = parseFloat(med2Select.value);
+        let angle1Deg = parseFloat(angleSlider.value);
+
+        function draw() {
+            const angle1Rad = angle1Deg * Math.PI / 180;
+            
+            // 司乃爾定律計算
+            let sin2 = (n1 / n2) * Math.sin(angle1Rad);
+            let tir = sin2 > 1.0;
+            let angle2Rad = tir ? 0 : Math.asin(sin2);
+            let angle2Deg = tir ? 0 : angle2Rad * 180 / Math.PI;
+
+            // 更新 UI 數據
+            valInc.textContent = angle1Deg.toFixed(1) + "°";
+            valRefl.textContent = angle1Deg.toFixed(1) + "°";
+            
+            // 更新 計算過程顯示 (垂直排版)
+            let calcHtml = `<div style="text-align: left;"><b>1. 代入公式</b><br><span style="color:#aaa;">${n1.toFixed(2)} · sin(${angle1Deg.toFixed(1)}°) = ${n2.toFixed(2)} · sin(θ₂)</span></div>`;
+            calcHtml += `<div style="text-align: left;"><b>2. 計算 sin(θ₂)</b><br><span style="color:#aaa;">sin(θ₂) = (${n1.toFixed(2)} · ${(Math.sin(angle1Rad)).toFixed(4)}) / ${n2.toFixed(2)}<br>sin(θ₂) = ${sin2.toFixed(4)}</span></div>`;
+
+            if (tir) {
+                valRefr.textContent = "無";
+                tirWarning.style.display = 'block';
+                calcHtml += `<div style="text-align: left; color: #ff4a4a;"><b>3. 發生全反射</b><br><span>sin(θ₂) > 1<br>無實數解</span></div>`;
+            } else {
+                valRefr.textContent = angle2Deg.toFixed(1) + "°";
+                tirWarning.style.display = 'none';
+                calcHtml += `<div style="text-align: left;"><b>3. 計算 θ₂</b><br><span style="color:#aaa;">θ₂ = arcsin(${sin2.toFixed(4)})<br>θ₂ ≈ ${angle2Deg.toFixed(1)}°</span></div>`;
+            }
+            calcProcess.innerHTML = calcHtml;
+
+            // 清空畫布
+            ctx.clearRect(0, 0, width, height);
+
+            // 繪製介質背景與材質
+            drawMedium(n1, true);
+            drawMedium(n2, false);
+
+            // 繪製外圍大圓圈刻度
+            drawScaleCircle();
+
+            // 繪製介面
+            ctx.beginPath();
+            ctx.moveTo(centerX - mainRadius, centerY);
+            ctx.lineTo(centerX + mainRadius, centerY);
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            // 繪製法線
+            ctx.beginPath();
+            ctx.setLineDash([8, 6]);
+            ctx.moveTo(centerX, centerY - mainRadius);
+            ctx.lineTo(centerX, centerY + mainRadius);
+            ctx.strokeStyle = '#aaaaaa';
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+            ctx.setLineDash([]); // 重設虛線樣式
+
+            // 放射線長度（至圓圈邊緣）
+            const rayLength = mainRadius;
+
+            // 1. 繪製入射光
+            const incDirX = -Math.sin(angle1Rad);
+            const incDirY = -Math.cos(angle1Rad);
+            drawRay(centerX + incDirX * rayLength, centerY + incDirY * rayLength, centerX, centerY, '#ff4a4a', true, true);
+
+            // 2. 繪製反射光
+            const reflDirX = Math.sin(angle1Rad);
+            const reflDirY = -Math.cos(angle1Rad);
+            const reflWidth = tir ? 4 : 2;
+            drawRay(centerX, centerY, centerX + reflDirX * rayLength, centerY + reflDirY * rayLength, '#ffb84d', true, false, reflWidth);
+
+            // 3. 繪製折射光
+            if (!tir) {
+                const refrDirX = Math.sin(angle2Rad);
+                const refrDirY = Math.cos(angle2Rad);
+                drawRay(centerX, centerY, centerX + refrDirX * rayLength, centerY + refrDirY * rayLength, '#4da6ff', true, false, 3);
+            }
+            
+            // 繪製角度弧線
+            drawAngleArc(centerX, centerY, angle1Rad, -Math.PI/2 - angle1Rad, -Math.PI/2, '#ff4a4a', angle1Deg);
+            drawAngleArc(centerX, centerY, angle1Rad, -Math.PI/2, -Math.PI/2 + angle1Rad, '#ffb84d', angle1Deg);
+            if (!tir && angle1Rad > 0.01) {
+                drawAngleArc(centerX, centerY, angle2Rad, Math.PI/2 - angle2Rad, Math.PI/2, '#4da6ff', angle2Deg);
+            }
+        }
+
+        function drawMedium(n, isTop) {
+            ctx.save();
+            ctx.beginPath();
+            if (isTop) {
+                ctx.rect(0, 0, width, centerY);
+            } else {
+                ctx.rect(0, centerY, width, centerY);
+            }
+            ctx.clip();
+
+            // 基本底色
+            ctx.fillStyle = getMediumColor(n, isTop);
+            ctx.fillRect(0, 0, width, height);
+
+            // 材質判斷
+            if (Math.abs(n - 1.333) < 0.01) {
+                // 水波紋特效
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                for (let y = isTop ? 20 : centerY + 20; y < (isTop ? centerY : height); y += 40) {
+                    for (let x = 0; x < width; x += 20) {
+                        if (x === 0) ctx.moveTo(x, y + Math.sin(x/30)*10);
+                        else ctx.lineTo(x, y + Math.sin(x/30)*10);
+                    }
+                }
+                ctx.stroke();
+            } else if (Math.abs(n - 1.52) < 0.01) {
+                // 玻璃特效 (更明顯的對角線反光)
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.08)'; // 增加透明度讓反光更亮
+                for (let i = -2; i < 8; i++) { // 增加反光條紋數量
+                    ctx.beginPath();
+                    ctx.moveTo(width * 0.1 + i*100, isTop ? 0 : centerY);
+                    ctx.lineTo(width * 0.25 + i*100, isTop ? 0 : centerY);
+                    ctx.lineTo(width * 0.05 + i*100, isTop ? centerY : height);
+                    ctx.lineTo(-width * 0.1 + i*100, isTop ? centerY : height);
+                    ctx.fill();
+                }
+            }
+
+            ctx.restore();
+        }
+
+        function drawScaleCircle() {
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, mainRadius, 0, 2 * Math.PI);
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.6)';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            // 畫 360 個刻度
+            for (let i = 0; i < 360; i++) {
+                const angleRad = i * Math.PI / 180;
+                let tickLength = 5;
+                if (i % 10 === 0) tickLength = 12;
+                else if (i % 5 === 0) tickLength = 8;
+                
+                const x1 = centerX + (mainRadius - tickLength) * Math.sin(angleRad);
+                const y1 = centerY - (mainRadius - tickLength) * Math.cos(angleRad);
+                const x2 = centerX + mainRadius * Math.sin(angleRad);
+                const y2 = centerY - mainRadius * Math.cos(angleRad);
+
+                ctx.beginPath();
+                ctx.moveTo(x1, y1);
+                ctx.lineTo(x2, y2);
+                ctx.strokeStyle = (i % 10 === 0) ? 'rgba(255, 255, 255, 0.8)' : 'rgba(255, 255, 255, 0.4)';
+                ctx.lineWidth = (i % 10 === 0) ? 2 : 1;
+                ctx.stroke();
+
+                // 標示文字 (0, 10, 20...90 等)
+                if (i % 10 === 0) {
+                    // 計算要顯示的角度數字
+                    // 頂部為 0, 底部也是 0 (+180度時), 兩側為 90
+                    let degreeText = i;
+                    if (degreeText > 180) degreeText = 360 - degreeText;
+                    if (degreeText > 90) degreeText = 180 - degreeText;
+
+                    const textRadius = mainRadius + 20;
+                    const tx = centerX + textRadius * Math.sin(angleRad);
+                    const ty = centerY - textRadius * Math.cos(angleRad) + 5;
+                    
+                    ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+                    ctx.font = '12px Arial';
+                    ctx.textAlign = 'center';
+                    
+                    ctx.fillText(degreeText.toString(), tx, ty);
+                }
+            }
+        }
+
+        function drawRay(x1, y1, x2, y2, color, arrow, isIncoming, lineWidth = 3) {
+            ctx.beginPath();
+            ctx.moveTo(x1, y1);
+            ctx.lineTo(x2, y2);
+            ctx.strokeStyle = color;
+            ctx.lineWidth = lineWidth;
+            // 加上發光效果
+            ctx.shadowColor = color;
+            ctx.shadowBlur = 10;
+            ctx.stroke();
+            ctx.shadowBlur = 0; // 重置
+
+            if (arrow) {
+                const midX = x1 + (x2 - x1) * (isIncoming ? 0.6 : 0.4);
+                const midY = y1 + (y2 - y1) * (isIncoming ? 0.6 : 0.4);
+                const angle = Math.atan2(y2 - y1, x2 - x1);
+                
+                ctx.beginPath();
+                ctx.moveTo(midX, midY);
+                ctx.lineTo(midX - 12 * Math.cos(angle - Math.PI / 6), midY - 12 * Math.sin(angle - Math.PI / 6));
+                ctx.lineTo(midX - 12 * Math.cos(angle + Math.PI / 6), midY - 12 * Math.sin(angle + Math.PI / 6));
+                ctx.closePath();
+                ctx.fillStyle = color;
+                ctx.shadowColor = color;
+                ctx.shadowBlur = 10;
+                ctx.fill();
+                ctx.shadowBlur = 0;
+            }
+        }
+
+        function drawAngleArc(x, y, angleRad, startAngle, endAngle, color, angleDeg) {
+            if (angleRad < 0.03) return;
+            const radius = 50;
+            ctx.beginPath();
+            ctx.arc(x, y, radius, startAngle, endAngle);
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+
+            // 在弧線中間標示度數文字
+            if (angleDeg !== undefined) {
+                // 計算弧度的中間點
+                const midAngle = (startAngle + endAngle) / 2;
+                // 將文字放在弧線再往外推一點的位置
+                const textRadius = radius + 15;
+                const tx = x + textRadius * Math.cos(midAngle);
+                const ty = y + textRadius * Math.sin(midAngle);
+                
+                ctx.fillStyle = color;
+                ctx.font = '12px Arial';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(angleDeg.toFixed(1) + '°', tx, ty);
+            }
+        }
+
+        function getMediumColor(n, isTop) {
+            if (Math.abs(n - 1.0) < 0.01) return '#080808';       // 空氣
+            if (Math.abs(n - 1.333) < 0.01) return '#002244';     // 水
+            if (Math.abs(n - 1.52) < 0.01) return '#1a1a1a';      // 玻璃
+            return '#111';
+        }
+
+        // 事件監聽器
+        med1Select.addEventListener('change', (e) => { 
+            n1 = parseFloat(e.target.value); 
+            n1Display.textContent = 'n = ' + n1.toFixed(2);
+            draw(); 
+        });
+        
+        med2Select.addEventListener('change', (e) => { 
+            n2 = parseFloat(e.target.value); 
+            n2Display.textContent = 'n = ' + n2.toFixed(2);
+            draw(); 
+        });
+        
+        angleSlider.addEventListener('input', (e) => { 
+            angle1Deg = parseFloat(e.target.value); 
+            angleNumInput.value = angle1Deg;
+            angleDisplay.textContent = angle1Deg.toFixed(1) + "°";
+            draw(); 
+        });
+
+        angleNumInput.addEventListener('input', (e) => {
+            let val = parseFloat(e.target.value);
+            if (isNaN(val)) return;
+            if (val < 0) val = 0;
+            if (val > 89.9) val = 89.9;
+            angle1Deg = val;
+            angleSlider.value = val;
+            angleDisplay.textContent = val.toFixed(1) + "°";
+            draw();
+        });
+
+        angleNumInput.addEventListener('change', (e) => {
+            let val = parseFloat(e.target.value);
+            if (isNaN(val)) val = 0;
+            if (val < 0) val = 0;
+            if (val > 89.9) val = 89.9;
+            e.target.value = val;
+        });
+
+        // 啟動首次繪製
+        draw();
+    </script>
+</body>
+</html>
